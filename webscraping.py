@@ -209,6 +209,17 @@ def get_video_details(youtube,video_list):
             postingDate = video['snippet'].get('publishedAt',None)
             description = video['snippet'].get('description',None)
             
+            categoryId = video['snippet'].get('categoryId', None)
+            category = None
+            if categoryId is not None:
+                category_request = youtube.videoCategories().list(
+                    part= 'snippet',
+                    id= categoryId
+                )
+                category_response = category_request.execute()
+                if 'items' in category_response and len(category_response['items']) > 0:
+                    category = category_response['items'][0]['snippet']['title']
+            
             
             # .get ensures that if the info is unavailable (private etc), it won't throw an error, but put 0
             viewCount = video["statistics"].get("viewCount",0)
@@ -226,6 +237,7 @@ def get_video_details(youtube,video_list):
                                     published=published,
                                     description = description,
                                     tags = tags,
+                                    category = category
                                     viewCount = viewCount,
                                     dislikeCount = dislikeCount,
                                     commentCount = commentCount,
