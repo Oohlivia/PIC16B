@@ -202,6 +202,7 @@ def get_video_details(youtube,video_list):
         for video in data["items"]:
             
             title = video["snippet"]['title']
+            channelName = video['snippet']['channelTitle']
             published = video['snippet']['publishedAt']
             description = video['snippet']['description']
             tags = video["snippet"].get('tags',[]) #how many tags video has bc 'tags' is a list
@@ -221,6 +222,7 @@ def get_video_details(youtube,video_list):
             
             #makes dictionary for each video with stas
             stats_dictionary = dict(title=title, 
+                                    channelName = channelName,
                                     published=published,
                                     description = description,
                                     tags = tags,
