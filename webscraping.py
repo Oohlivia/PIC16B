@@ -53,7 +53,7 @@ def channel_items(youtube,channel_id):
     get_videoID_list
     '''
     request = youtube.channels().list(
-        part = "snippet,contentDetails,statistics",
+        part = "snippet,contentDetails,statistics,topicDetails,status",
         id = channel_id
     )
     response= request.execute()
@@ -73,21 +73,31 @@ def stats_loc_name(response_items):
     videoCount = pd.to_numeric(response_items[0]["statistics"].get("videoCount",0))
     country = response_items[0]["snippet"].get("country",None)
     title = response_items[0]["snippet"].get("title",None)
-    return title,country,viewCount,subscriberCount,videoCount
+    
+    try:
+        topic = response_items[0]['topicDetails'].get('topicCategories',0)
+    except:
+        topic = 0
+    
+    return title,country,viewCount,subscriberCount,videoCount,topic
 
+    
 
 def get_1_channel_stats(youtube,channel_id):
     '''
     Gets list of items from youtube api for 1 channel
     '''
     request = youtube.channels().list(
-        part = "snippet,contentDetails,statistics",
+        part = "snippet,contentDetails,statistics,topicDetails,status",
         id = channel_id
     )
     response= request.execute()
+    # get only stats from "items" key
+    data = stats_loc_name(response['items'])
     
-    # get only stats from"items" key
-    return stats_loc_name(response['items'])
+
+    return data
+
 
 def get_1_channel_description(youtube,channel_id):
     '''
@@ -104,7 +114,18 @@ def get_1_channel_description(youtube,channel_id):
     #x = response['items'][0]
     x = response['items'][0]["snippet"].get("description",0)
     return x
-        
+
+
+def rid_url(urls):
+    prefix = 'https://en.wikipedia.org/wiki/'
+    new_urls = []
+    if urls == 0:
+        return None
+    else:
+        for url in urls:
+            # check if the URL is NaN, and skip it if it is
+            new_urls.append(url.replace(prefix, ''))
+    return new_urls
 
 
 def channels_stats(youtube,channel_ids):
@@ -116,10 +137,12 @@ def channels_stats(youtube,channel_ids):
     for channel_id in channel_ids:
         all_data.append(get_1_channel_stats(youtube,channel_id))
         des.append(get_1_channel_description(youtube,channel_id))
-    df = pd.DataFrame(all_data, columns = ["title","country","viewCount","subscriberCount","videoCount"])
+    df = pd.DataFrame(all_data, columns = ["title","country",
+                                           "viewCount","subscriberCount","videoCount","topic"])
     df["description"] = des
     df["channel_id"] = channel_ids
-    
+    df["topic"] = df["topic"].apply(rid_url)                                       
+                                           
     return df
 
 def top_channels(df,column,percentile):
@@ -237,7 +260,7 @@ def get_video_details(youtube,video_list):
                                     published=published,
                                     description = description,
                                     tags = tags,
-                                    category = category
+                                    category = category,
                                     viewCount = viewCount,
                                     dislikeCount = dislikeCount,
                                     commentCount = commentCount,
